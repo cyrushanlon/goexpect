@@ -4,7 +4,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/cyrushanlon/expect"
+	"github.com/cyrushanlon/goexpect"
 	"github.com/yuin/gopher-lua"
 )
 
