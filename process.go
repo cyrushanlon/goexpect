@@ -26,6 +26,9 @@ type Process struct {
 //combine these functions so there isnt so much duplicated code
 func (p *Process) listenToOut(pipe *bytes.Buffer) {
 	for !p.done {
+
+		//fmt.Println(pipe.Bytes())
+
 		//declare them once here so we dont waste time inside when reading
 		var b byte
 		var err error
@@ -37,7 +40,7 @@ func (p *Process) listenToOut(pipe *bytes.Buffer) {
 			}
 		}
 		if len(line) > 0 {
-			fmt.Println(string(line))
+			fmt.Print(string(line))
 			p.stdoutQueue = append(p.stdoutQueue, string(line))
 		}
 	}
@@ -67,7 +70,7 @@ func (p *Process) SendInput(in string) {
 }
 
 //Start spawns the sub process with the given arguments
-func (p *Process) Start(args ...string) {
+func (p *Process) Start(args ...string) error {
 
 	p.cmd = exec.Command(args[0], args[1:]...)
 
@@ -75,11 +78,18 @@ func (p *Process) Start(args ...string) {
 	p.cmd.Stdout = &p.stdout
 	p.cmd.Stderr = &p.stderr
 
-	p.cmd.Start()
+	err := p.cmd.Start()
+	if err != nil {
+		p.done = true
+		return err
+	}
+
 	p.done = false
 
 	go p.listenToOut(&p.stdout)
 	go p.listenToIn(&p.stderr)
+
+	return nil
 }
 
 //Expect waits for a given string to show up in the input
@@ -88,15 +98,19 @@ func (p *Process) Expect(compare string, nocase bool) bool {
 	startTime := time.Now()
 	for time.Now().Unix()-startTime.Unix() < int64(p.Timeout) {
 
-		curLine := p.stdoutQueue[len(p.stdoutQueue)-1]
-		if nocase {
-			compare = strings.ToLower(compare)
-			curLine = strings.ToLower(curLine)
+		if len(p.stdoutQueue) > 0 {
+
+			curLine := p.stdoutQueue[len(p.stdoutQueue)-1]
+			if nocase {
+				compare = strings.ToLower(compare)
+				curLine = strings.ToLower(curLine)
+			}
+
+			if strings.Contains(curLine, compare) {
+				return true
+			}
 		}
 
-		if strings.Contains(curLine, compare) {
-			return true
-		}
 		time.Sleep(100 * time.Millisecond)
 	}
 	return false
