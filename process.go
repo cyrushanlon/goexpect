@@ -45,7 +45,7 @@ func (p *Process) listenToOut(pipe *bytes.Buffer) {
 		}
 	}
 }
-func (p *Process) listenToIn(pipe *bytes.Buffer) {
+func (p *Process) listenToErr(pipe *bytes.Buffer) {
 	for !p.done {
 		//declare them once here so we dont waste time inside when reading
 		var b byte
@@ -87,7 +87,7 @@ func (p *Process) Start(args ...string) error {
 	p.done = false
 
 	go p.listenToOut(&p.stdout)
-	go p.listenToIn(&p.stderr)
+	go p.listenToErr(&p.stderr)
 
 	return nil
 }
@@ -119,6 +119,8 @@ func (p *Process) Expect(compare string, nocase bool) bool {
 //Close ends the subprocess
 func (p *Process) Close() {
 
-	p.cmd.Process.Kill()
+	if p.cmd != nil {
+		p.cmd.Process.Kill()
+	}
 	p.done = true
 }

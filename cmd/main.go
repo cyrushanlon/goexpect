@@ -46,7 +46,7 @@ func sendP(L *lua.LState) int {
 	sent := L.ToString(1)
 
 	p.SendInput(sent)
-	time.Sleep(15 * time.Millisecond)
+	time.Sleep(50 * time.Millisecond)
 
 	return 0 // Notify that we pushed one value to the stack
 }
@@ -76,13 +76,18 @@ func setTimeout(L *lua.LState) int { //*
 
 func main() {
 
-	argv := os.Args[1:] //remove first arg which is the path to the exe
+	argv := os.Args
+	if len(argv) < 2 {
+		panic("no path to script")
+	}
 
 	L := lua.NewState()
 	defer L.Close()
 
 	argvLuaTable := L.NewTable()
-	for k, v := range argv {
+	//remove first arg which is the path to the exe
+	//remove second arg as it is the path to the script
+	for k, v := range argv[2:] {
 		argvLuaTable.Insert(k, lua.LString(v))
 	}
 
@@ -96,66 +101,105 @@ func main() {
 	L.SetGlobal("exit", L.NewFunction(exit))          // Register our function in Lua
 	L.SetGlobal("timeout", L.NewFunction(setTimeout)) // Register our function in Lua
 
-	if err := L.DoString(`
-	--first we sort out the vars
-	timeout(5)
-	ip = argv[0]
-	username =  argv[1]
-	password = argv[2]
-	macs = {}
-	for i = 3, #argv do
-    	macs[i-2] = argv[i]
-  	end
+	if err := L.DoFile(argv[1]); err != nil {
+		panic(err)
+	}
+	/*
+	   	if err := L.DoString(`
+	   --first we sort out the vars
+	   timeout(5)
+	   ip = argv[0]
+	   username =  argv[1]
+	   password = argv[2]
 
-	--then we create the telnet instance
-	spawn("telnet", ip)
-	
-	--login
-	if not expect(":") then
-		exit()
-		return
-	end
-	send(username)
+	   --then we create the telnet instance
+	   spawn("telnet", ip)
 
-	if not expect(":") then
-		exit()
-		return
-	end
-	send(password)
+	   --login
+	   if not expect(":") then
+	   	exit()
+	   	return
+	   end
+	   send(username)
 
-	if not expect(">") then
-		exit()
-		return
-	end
-	--we are now logged in
+	   if not expect(":") then
+	   	exit()
+	   	return
+	   end
+	   send(password)
 
-	--reboot in case it all goes completly wrong at some point in the future
-	send("reboot 8")
-	if not expect("reboot time 8 minutes") and not expect("ok") then
-		exit()
-		return
-	end
+	   if not expect(">") then
+	   	exit()
+	   	return
+	   end
+	   --we are now logged in
 
-	--mac address filter
-	for k, v in pairs(macs) do
-		send ("macfilt ".. k .. " mac ".. v)
-		if not expect("ok") then
+
+	   send("ppp 0 autoassert 0")
+	   if not expect("ok") then
+	   	exit()
+	   	return
+	   end
+	   send("ppp 3 autoassert 0")
+	   if not expect("ok") then
+	   	exit()
+	   	return
+	   end
+
+	   send("ppp 0 deact_rq")
+	   if not expect("ok") then
+	   	exit()
+	   	return
+	   end
+	   send("ppp 3 deact_rq")
+	   if not expect("ok") then
+	   	exit()
+	   	return
+	   end
+
+	   send("exit")
+
+	   exit()
+	   	   	`); err != nil {
+	   		panic(err)
+	   	}
+	*/
+	/*
+		if err := L.DoString(`
+		--first we sort out the vars
+		timeout(5)
+		ip = argv[0]
+		username =  argv[1]
+		password = argv[2]
+
+		--then we create the telnet instance
+		spawn("telnet", ip)
+
+		--login
+		if not expect(":") then
 			exit()
 			return
 		end
-	end
-	
-	--enable filter
-	send("eth 0 macfilt on")
-	if not expect("ok") then
-		exit()
-		return
-	end
-	send("exit")
-	
-	exit()
+		send(username)
 
-	`); err != nil {
-		panic(err)
-	}
+		if not expect(":") then
+			exit()
+			return
+		end
+		send(password)
+
+		if not expect(">") then
+			exit()
+			return
+		end
+		--we are now logged in
+
+		--reboot closes the connection
+		send("reboot")
+
+		exit()
+		   	   	`); err != nil {
+			panic(err)
+		}
+	*/
 }
