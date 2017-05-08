@@ -26,9 +26,7 @@ type Process struct {
 //combine these functions so there isnt so much duplicated code
 func (p *Process) listenToOut(pipe *bytes.Buffer) {
 	for !p.done {
-
-		//fmt.Println(pipe.Bytes())
-
+		//fmt.Print("|")
 		//declare them once here so we dont waste time inside when reading
 		var b byte
 		var err error
@@ -43,7 +41,10 @@ func (p *Process) listenToOut(pipe *bytes.Buffer) {
 			fmt.Print(string(line))
 			p.stdoutQueue = append(p.stdoutQueue, string(line))
 		}
+
+		time.Sleep(10 * time.Millisecond)
 	}
+	fmt.Print(string(pipe.Bytes()))
 }
 func (p *Process) listenToErr(pipe *bytes.Buffer) {
 	for !p.done {
@@ -61,6 +62,7 @@ func (p *Process) listenToErr(pipe *bytes.Buffer) {
 			p.stdoutQueue = append(p.stderrQueue, string(line))
 		}
 	}
+	fmt.Print(string(pipe.Bytes()))
 }
 
 //SendInput passes a string to the subprocesses stdin
@@ -87,7 +89,8 @@ func (p *Process) Start(args ...string) error {
 	p.done = false
 
 	go p.listenToOut(&p.stdout)
-	go p.listenToErr(&p.stderr)
+	//we dont do anything with the erorr stream so dont bother listening to it
+	//go p.listenToErr(&p.stderr)
 
 	return nil
 }

@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"runtime"
 	"time"
 
 	"log"
@@ -60,6 +61,8 @@ func sleep(L *lua.LState) int {
 }
 
 func exit(L *lua.LState) int {
+	time.Sleep(500 * time.Millisecond)
+
 	p.Close()
 
 	return 0 // Notify that we pushed one value to the stack
@@ -75,6 +78,11 @@ func setTimeout(L *lua.LState) int { //*
 }
 
 func main() {
+
+	//for very low powered machines nothing would happen in the goroutines as soon as they are put to sleep
+	if runtime.GOMAXPROCS(0) < 3 {
+		runtime.GOMAXPROCS(3)
+	}
 
 	argv := os.Args
 	if len(argv) < 2 {
@@ -104,6 +112,7 @@ func main() {
 	if err := L.DoFile(argv[1]); err != nil {
 		panic(err)
 	}
+
 	/*
 	   	if err := L.DoString(`
 	   --first we sort out the vars
