@@ -1,18 +1,18 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"runtime"
 	"time"
-
-	"log"
 
 	"github.com/cyrushanlon/goexpect"
 	"github.com/yuin/gopher-lua"
 )
 
 var (
-	p expect.Process
+	p        expect.Process
+	exitCode int
 )
 
 func spawnP(L *lua.LState) int { //*
@@ -25,7 +25,7 @@ func spawnP(L *lua.LState) int { //*
 
 	err := p.Start(cmd, args)
 	if err != nil {
-		log.Println(err)
+		fmt.Println(err)
 	}
 
 	//ln := lua.LBool(true) // make calculation and cast to LNumber
@@ -61,6 +61,7 @@ func sleep(L *lua.LState) int {
 }
 
 func exit(L *lua.LState) int {
+	exitCode = L.ToInt(1) // get first (1) function argument and convert to int
 	time.Sleep(500 * time.Millisecond)
 
 	p.Close()
@@ -113,102 +114,10 @@ func main() {
 		panic(err)
 	}
 
-	/*
-	   	if err := L.DoString(`
-	   --first we sort out the vars
-	   timeout(5)
-	   ip = argv[0]
-	   username =  argv[1]
-	   password = argv[2]
+	fmt.Println(exitCode)
 
-	   --then we create the telnet instance
-	   spawn("telnet", ip)
-
-	   --login
-	   if not expect(":") then
-	   	exit()
-	   	return
-	   end
-	   send(username)
-
-	   if not expect(":") then
-	   	exit()
-	   	return
-	   end
-	   send(password)
-
-	   if not expect(">") then
-	   	exit()
-	   	return
-	   end
-	   --we are now logged in
-
-
-	   send("ppp 0 autoassert 0")
-	   if not expect("ok") then
-	   	exit()
-	   	return
-	   end
-	   send("ppp 3 autoassert 0")
-	   if not expect("ok") then
-	   	exit()
-	   	return
-	   end
-
-	   send("ppp 0 deact_rq")
-	   if not expect("ok") then
-	   	exit()
-	   	return
-	   end
-	   send("ppp 3 deact_rq")
-	   if not expect("ok") then
-	   	exit()
-	   	return
-	   end
-
-	   send("exit")
-
-	   exit()
-	   	   	`); err != nil {
-	   		panic(err)
-	   	}
-	*/
-	/*
-		if err := L.DoString(`
-		--first we sort out the vars
-		timeout(5)
-		ip = argv[0]
-		username =  argv[1]
-		password = argv[2]
-
-		--then we create the telnet instance
-		spawn("telnet", ip)
-
-		--login
-		if not expect(":") then
-			exit()
-			return
-		end
-		send(username)
-
-		if not expect(":") then
-			exit()
-			return
-		end
-		send(password)
-
-		if not expect(">") then
-			exit()
-			return
-		end
-		--we are now logged in
-
-		--reboot closes the connection
-		send("reboot")
-
-		exit()
-		   	   	`); err != nil {
-			panic(err)
-		}
-	*/
+	if exitCode != 0 {
+		fmt.Println("exitCode error!")
+	}
+	os.Exit(exitCode)
 }
