@@ -6,7 +6,7 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/cyrushanlon/goexpect"
+	expect "github.com/cyrushanlon/goexpect"
 	"github.com/yuin/gopher-lua"
 )
 
@@ -80,14 +80,20 @@ func setTimeout(L *lua.LState) int { //*
 
 func main() {
 
+	p = expect.Process{}
+
 	//for very low powered machines nothing would happen in the goroutines as soon as they are put to sleep
 	if runtime.GOMAXPROCS(0) < 3 {
 		runtime.GOMAXPROCS(3)
 	}
 
 	argv := os.Args
+
 	if len(argv) < 2 {
-		panic("no path to script")
+		fmt.Println("no path to script")
+		fmt.Println("exitCode error!")
+		os.Exit(1)
+		//panic("no path to script")
 	}
 
 	L := lua.NewState()
@@ -111,10 +117,11 @@ func main() {
 	L.SetGlobal("timeout", L.NewFunction(setTimeout)) // Register our function in Lua
 
 	if err := L.DoFile(argv[1]); err != nil {
-		panic(err)
+		fmt.Println(err)
+		fmt.Println("exitCode error!")
+		os.Exit(1)
+		//panic(err)
 	}
-
-	fmt.Println(exitCode)
 
 	if exitCode != 0 {
 		fmt.Println("exitCode error!")
